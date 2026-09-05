@@ -2,40 +2,53 @@
 
 **Uganda National Grid Master Data Management**
 
-UNG-MDM is a **Corporate Enterprise System**. It is not a regular field-operations application.
+UNG-MDM is the authoritative corporate master-data platform for shared enterprise entities across the UNG ecosystem.
 
-## Purpose
+## Current foundation
 
-UNG-MDM is the authoritative master-data platform for shared enterprise entities used across the Uganda National Grid ecosystem, including customers, vendors, facilities, warehouses, vehicles, employees, locations, products/SKUs, equipment, organizational units, and controlled reference codes.
+Version `0.2.0` adds the first production API layer:
 
-## Architectural role
+- UNG-IAM bearer-token validation through `GET /v1/me`
+- Deny-by-default permission checks
+- Isolated UNG-MDM database boundary
+- PostgreSQL production support with SQLite development fallback
+- Master-data domain registry
+- Master-data record registry
+- Creator identity attribution using the UNG-IAM identity ID
 
-- Independent repository and deployment boundary
-- Corporate/control-plane system
-- Authoritative source for shared enterprise master records
-- Other systems consume approved master data through authenticated APIs/events
-- No direct dependency on the `uganda-grid-api-clean` runtime
-- Designed for integration with UNG-IAM, UNG-NOC, UNG-Sentinel, Data Relay, and operational platforms
+UNG-MDM never imports IAM application code and never shares the IAM database. Identity is validated over the UNG-IAM API.
 
-## Foundation status
+## Environment
 
-Version `0.1.0` establishes the service shell only. Business CRUD, stewardship workflows, matching/merging, governance rules, and production database schemas will be added in later phases after all platform foundations are created.
+- `UNG_IAM_BASE_URL` — UNG-IAM service URL; defaults to `https://ung-iam-production.up.railway.app`
+- `UNG_IAM_TIMEOUT` — IAM request timeout in seconds; default `5`
+- `UNG_MDM_DATABASE_URL` — dedicated PostgreSQL URL for production
+- `UNG_MDM_DB` — optional SQLite path for local development
+- `UNG_MDM_READ_PERMISSION` — read permission; default `platform:corporate`
+- `UNG_MDM_WRITE_PERMISSION` — write permission; default `iam:write` during the bootstrap phase
 
 ## Endpoints
 
-- `GET /` — service identity and classification
-- `GET /health` — health check
+Public:
+
+- `GET /`
+- `GET /health`
+
+IAM protected:
+
+- `GET /v1/me`
+- `GET /v1/domains`
+- `POST /v1/domains`
+- `GET /v1/records`
+- `POST /v1/records`
+
+## Next phases
+
+The next MDM phases add dedicated `mdm:*` permissions, stewardship workflows, approval states, record versioning, matching/merging, golden-record resolution, reference-data publication, downstream change events, and audit integration with UNG-Sentinel.
 
 ## Local run
 
 ```bash
 pip install -r requirements.txt
-uvicorn app:app --reload
-```
-
-## Container run
-
-```bash
-docker build -t ung-mdm .
-docker run -p 8080:8080 ung-mdm
+uvicorn app:app --host 0.0.0.0 --port 8080
 ```
